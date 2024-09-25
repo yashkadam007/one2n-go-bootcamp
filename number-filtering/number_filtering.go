@@ -5,6 +5,15 @@ import (
 	"math"
 )
 
+func isPrime(n int) bool {
+	for i := 2; i < int(math.Sqrt(float64(n))); i++ {
+		if n%i == 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func FilterEvenNumbers(arr []int) []int {
 	var result []int
 	for i := 0; i < len(arr); i++ {
@@ -79,6 +88,40 @@ func OddMultipleOf3GT10(arr []int) []int {
 	var result []int
 	for _, v := range arr {
 		if v%3 == 0 && v%2 != 0 && v > 10 {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+type Condition func(n int) bool
+
+func FilterConditions(arr []int, conditions ...Condition) []int {
+	var result []int
+	for _, v := range arr {
+		matchingCondition := true
+		for _, cond := range conditions {
+			if !cond(v) {
+				matchingCondition = false
+			}
+		}
+		if matchingCondition {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func FilterConditionsAny(arr []int, conditions ...Condition) []int {
+	var result []int
+	for _, v := range arr {
+		matchingCondition := false
+		for _, cond := range conditions {
+			if cond(v) {
+				matchingCondition = true
+			}
+		}
+		if matchingCondition {
 			result = append(result, v)
 		}
 	}
