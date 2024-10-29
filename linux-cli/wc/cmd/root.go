@@ -27,6 +27,14 @@ type commandFlags struct {
 
 var flags commandFlags
 
+type result struct {
+	lineCount int
+	wordCount int
+	charCount int
+}
+
+var r result
+
 var rootCmd = &cobra.Command{
 	Use:   "wc",
 	Args:  cobra.MinimumNArgs(1),
@@ -56,23 +64,8 @@ to quickly create a Cobra application.`,
 				fmt.Println(err)
 			}
 		}()
-
-		// var output string
-		if flags.l {
-			fmt.Printf("%8d %s\n", getLineCount(f), filePath)
-		}
-		if flags.w {
-			fmt.Printf("%8d %s\n", getWordCount(f), filePath)
-		}
-		if flags.c {
-			fmt.Printf("%8d %s\n", getCharCount(f), filePath)
-		}
-		if (commandFlags{} == flags) {
-			l := getLineCount(f)
-			w := getWordCount(f)
-			c := getCharCount(f)
-			fmt.Printf("%8d%8d%8d %s\n", l, w, c, filePath)
-		}
+		output := r.getResult(f, filePath)
+		fmt.Print(output)
 	},
 }
 
@@ -98,6 +91,29 @@ func init() {
 	rootCmd.Flags().BoolVarP(&flags.l, "line", "l", false, "Get line count of files")
 	rootCmd.Flags().BoolVarP(&flags.w, "word", "w", false, "Get word count of files")
 	rootCmd.Flags().BoolVarP(&flags.c, "char", "c", false, "Get word count of files")
+}
+
+func (r result) getResult(f *os.File, filePath string) string {
+	var output string
+
+	if flags.l {
+		output += fmt.Sprintf("%8d", getLineCount(f))
+	}
+	if flags.w {
+		output += fmt.Sprintf("%8d", getWordCount(f))
+	}
+	if flags.c {
+		output += fmt.Sprintf("%8d", getCharCount(f))
+		// fmt.Printf("%8d %s\n", getCharCount(f), filePath)
+	}
+	if (commandFlags{} == flags) {
+		l := getLineCount(f)
+		w := getWordCount(f)
+		c := getCharCount(f)
+		output += fmt.Sprintf("%8d%8d%8d", l, w, c)
+	}
+	output += fmt.Sprint(" " + filePath + "\n")
+	return output
 }
 
 func getLineCount(f *os.File) int {
