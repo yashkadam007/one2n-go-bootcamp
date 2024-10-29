@@ -33,7 +33,10 @@ type result struct {
 	charCount int
 }
 
-var r result
+var (
+	r           result
+	totalResult result
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "wc",
@@ -48,24 +51,13 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		filePath := args[0]
-		if isDir, _ := isDirectory(filePath); isDir {
-			fmt.Printf("wc: %s: read: Is a dirctory\n", filePath)
-			os.Exit(1)
+		for _, v := range args {
+			processFile(v)
 		}
-
-		f, err := os.Open(filePath)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+		if len(args) > 1 {
+			totalOutput := totalResult.getTotal()
+			fmt.Print(totalOutput)
 		}
-		defer func() {
-			if err := f.Close(); err != nil {
-				fmt.Println(err)
-			}
-		}()
-		output := r.getResult(f, filePath)
-		fmt.Print(output)
 	},
 }
 
@@ -93,23 +85,75 @@ func init() {
 	rootCmd.Flags().BoolVarP(&flags.c, "char", "c", false, "Get word count of files")
 }
 
+func processFile(filePath string) {
+	if isDir, _ := isDirectory(filePath); isDir {
+		fmt.Printf("wc: %s: read: Is a dirctory\n", filePath)
+		// os.Exit(1)
+		return
+	}
+
+	f, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println(err)
+		return
+		// os.Exit(1)
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+	output := r.getResult(f, filePath)
+	fmt.Print(output)
+}
+
+func (r result) getTotal() string {
+	var output string
+
+	if flags.l {
+		output += fmt.Sprintf("%8d", r.lineCount)
+	}
+	if flags.w {
+		output += fmt.Sprintf("%8d", r.wordCount)
+	}
+	if flags.c {
+		output += fmt.Sprintf("%8d", r.charCount)
+		// fmt.Printf("%8d %s\n", getCharCount(f), filePath)
+	}
+	if (commandFlags{} == flags) {
+		output += fmt.Sprintf("%8d%8d%8d", r.lineCount, r.wordCount, r.charCount)
+	}
+	output += fmt.Sprint(" " + "total" + "\n")
+	return output
+}
+
 func (r result) getResult(f *os.File, filePath string) string {
 	var output string
 
 	if flags.l {
-		output += fmt.Sprintf("%8d", getLineCount(f))
+		lc := getLineCount(f)
+		totalResult.lineCount += lc
+		output += fmt.Sprintf("%8d", lc)
 	}
 	if flags.w {
-		output += fmt.Sprintf("%8d", getWordCount(f))
+		wc := getWordCount(f)
+		totalResult.wordCount += wc
+		output += fmt.Sprintf("%8d", wc)
 	}
 	if flags.c {
-		output += fmt.Sprintf("%8d", getCharCount(f))
+		cc := getCharCount(f)
+		totalResult.charCount += cc
+		output += fmt.Sprintf("%8d", cc)
 		// fmt.Printf("%8d %s\n", getCharCount(f), filePath)
 	}
 	if (commandFlags{} == flags) {
 		l := getLineCount(f)
 		w := getWordCount(f)
 		c := getCharCount(f)
+
+		totalResult.lineCount += l
+		totalResult.wordCount += w
+		totalResult.charCount += c
 		output += fmt.Sprintf("%8d%8d%8d", l, w, c)
 	}
 	output += fmt.Sprint(" " + filePath + "\n")
