@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+Copyright © 2024 NAM HERE <EMAIL ADDRESS>
 */
 package cmd
 
@@ -12,7 +12,20 @@ import (
 )
 
 // rootCmd represents the base command when called without any subcommands
-var l bool
+// var (
+//
+//	l bool
+//	w bool
+//	c bool
+//
+// )
+type commandFlags struct {
+	l bool
+	w bool
+	c bool
+}
+
+var flags commandFlags
 
 var rootCmd = &cobra.Command{
 	Use:   "wc",
@@ -29,7 +42,7 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		filePath := args[0]
 		if isDir, _ := isDirectory(filePath); isDir {
-			fmt.Println(filePath, ": read: Is a directory")
+			fmt.Printf("wc: %s: read: Is a dirctory\n", filePath)
 			os.Exit(1)
 		}
 
@@ -43,8 +56,22 @@ to quickly create a Cobra application.`,
 				fmt.Println(err)
 			}
 		}()
-		if l {
-			fmt.Println("/t", getLineCount(f), filePath)
+
+		// var output string
+		if flags.l {
+			fmt.Printf("%8d %s\n", getLineCount(f), filePath)
+		}
+		if flags.w {
+			fmt.Printf("%8d %s\n", getWordCount(f), filePath)
+		}
+		if flags.c {
+			fmt.Printf("%8d %s\n", getCharCount(f), filePath)
+		}
+		if (commandFlags{} == flags) {
+			l := getLineCount(f)
+			w := getWordCount(f)
+			c := getCharCount(f)
+			fmt.Printf("%8d%8d%8d %s\n", l, w, c, filePath)
 		}
 	},
 }
@@ -68,20 +95,52 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	rootCmd.Flags().BoolVarP(&l, "line", "l", false, "Get line count of files")
+	rootCmd.Flags().BoolVarP(&flags.l, "line", "l", false, "Get line count of files")
+	rootCmd.Flags().BoolVarP(&flags.w, "word", "w", false, "Get word count of files")
+	rootCmd.Flags().BoolVarP(&flags.c, "char", "c", false, "Get word count of files")
 }
 
 func getLineCount(f *os.File) int {
+	f.Seek(0, 0)
 	r := bufio.NewReader(f)
 	lineCount := 0
 	for {
-		_, _, err := r.ReadLine()
+		_, isPrefix, err := r.ReadLine()
+		if isPrefix {
+			continue
+		}
 		if err != nil {
 			break
 		}
 		lineCount++
 	}
 	return lineCount
+}
+
+func getWordCount(f *os.File) int {
+	f.Seek(0, 0)
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanWords)
+	wordCount := 0
+	for scanner.Scan() {
+		wordCount++
+	}
+	return wordCount
+}
+
+func getCharCount(f *os.File) int {
+	f.Seek(0, 0)
+	reader := bufio.NewReader(f)
+	charCount := 0
+	for {
+		_, err := reader.ReadByte()
+		if err != nil {
+			break
+		}
+		charCount++
+		// fmt.Println(string(r), charCount)
+	}
+	return charCount
 }
 
 func isDirectory(path string) (bool, error) {
