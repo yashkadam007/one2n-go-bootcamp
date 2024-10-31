@@ -39,8 +39,8 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "wc",
-	Args:  cobra.MinimumNArgs(1),
+	Use: "wc",
+	// Args:  cobra.MinimumNArgs(1),
 	Short: "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
@@ -51,6 +51,23 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+
+			scanner := bufio.NewScanner(os.Stdin)
+			var text string
+			for scanner.Scan() {
+				text += scanner.Text() + "\n"
+			}
+			err := os.WriteFile("temp.txt", []byte(text), 0664)
+			if err != nil {
+				fmt.Println("error reading input")
+			}
+			processFile("temp.txt")
+			err = os.Remove("temp.txt")
+			if err != nil {
+				fmt.Println("error reading input")
+			}
+		}
 		for _, v := range args {
 			processFile(v)
 		}
@@ -155,6 +172,10 @@ func (r result) getResult(f *os.File, filePath string) string {
 		totalResult.wordCount += w
 		totalResult.charCount += c
 		output += fmt.Sprintf("%8d%8d%8d", l, w, c)
+	}
+	if filePath == "temp.txt" {
+		output += " \n"
+		return output
 	}
 	output += fmt.Sprint(" " + filePath + "\n")
 	return output
