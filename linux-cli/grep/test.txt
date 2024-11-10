@@ -1,0 +1,6 @@
+line 1
+line 2
+line 3
+I found the Search_string in the file.
+Another line also contains the search_string
+line 4

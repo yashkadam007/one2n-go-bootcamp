@@ -1,0 +1,1 @@
+Another line also contains the search_string
