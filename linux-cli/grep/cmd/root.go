@@ -35,8 +35,9 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		var linesContainingText []string
+		var output []string
 		searchText := args[0]
+		// process input from stdin
 		if len(args) == 1 {
 			var output []string
 			scanner := bufio.NewScanner(os.Stdin)
@@ -51,35 +52,27 @@ to quickly create a Cobra application.`,
 			return
 		}
 		filePath := args[1]
+
+		// If given a directory search all files recursively
 		if isDir, _ := isDirectory(filePath); isDir {
-			root := filePath
-			var paths []string
-			err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-				if err != nil {
-					return err
-				}
-				if !d.IsDir() {
-					paths = append(paths, path)
-				}
-				return nil
-			})
+			linesContainingText, err := SearchInDirectory(filePath, searchText)
 			if err != nil {
-				log.Fatal(err)
+				fmt.Fprint(os.Stderr, err)
 			}
-			for _, v := range paths {
-				fmt.Println(v)
+			output = append(output, linesContainingText...)
+		} else {
+
+			linesContainingText, err := SearchInFile(searchText, filePath)
+			if err != nil {
+				fmt.Fprint(os.Stderr, err)
 			}
-			return
+			output = append(output, linesContainingText...)
 		}
-		linesContainingText, err := SearchInFile(searchText, filePath)
 		if flags.o != "" {
-			writeOutputToFile(flags.o, linesContainingText)
+			writeOutputToFile(flags.o, output)
 			return
 		}
-		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-		}
-		for _, v := range linesContainingText {
+		for _, v := range output {
 			fmt.Println(v)
 		}
 	},
@@ -92,6 +85,34 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+func SearchInDirectory(root string, searchText string) ([]string, error) {
+	var paths []string
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			paths = append(paths, path)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	var output []string
+	for _, v := range paths {
+		linesContainingTextInFile, err := SearchInFile(searchText, v)
+		if err != nil {
+			return nil, err
+		}
+		for i, str := range linesContainingTextInFile {
+			linesContainingTextInFile[i] = v + ":" + str
+		}
+		output = append(output, linesContainingTextInFile...)
+	}
+	return output, nil
 }
 
 func writeOutputToFile(filePath string, result []string) {
